@@ -9,17 +9,27 @@ from .models import AppError, Transaction
 
 
 class JsonlStore:
+    
     def __init__(self, data_dir: Path):
         self.root = data_dir
         self.root.mkdir(parents=True, exist_ok=True)
-        self.transactions = self.root / 'transactions.jsonl'
-        self.categories = self.root / 'categories.jsonl'
-        self.budgets = self.root / 'budgets.jsonl'
+
+        self.transactions = self.root / "transactions.jsonl"
+        self.categories = self.root / "categories.jsonl"
+        self.budgets = self.root / "budgets.jsonl"
+
+        # 최초 실행인지 확인
+        first_run = not self.categories.exists()
+
         for path in (self.transactions, self.categories, self.budgets):
             path.touch(exist_ok=True)
-        if not any(self.read_objects(self.categories)):
-            self.atomic_write(self.categories, ({'name': name} for name in
-                ('food', 'transport', 'rent', 'salary', 'etc')))
+
+        # 최초 실행일 때만 기본 카테고리 생성
+        if first_run:
+            default_categories = [
+                "food", "transport", "rent", "salary", "etc"
+            ]
+            self.set_categories(default_categories)
 
     @staticmethod
     def read_objects(path: Path) -> Iterator[dict]:
