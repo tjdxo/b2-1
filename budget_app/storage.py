@@ -5,8 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Callable, Iterator
 
-from .models import AppError, Transaction
-
+from .models import AppError, Transaction, check_month, positive_int
 
 class JsonlStore:
     
@@ -88,13 +87,45 @@ class JsonlStore:
         self.atomic_write(self.transactions, converted())
 
     def get_categories(self) -> list[str]:
-        return [obj['name'] for obj in self.read_objects(self.categories)]
+        categories = []
 
+        for number, obj in enumerate(self.read_objects(self.categories), 1):
+            name = obj.get('name')
+
+            if not isinstance(name, str) or not name.strip():
+                raise AppError(
+                    f'categories.jsonl {number}번째 데이터가 올바르지 않습니다. '
+                    'name 항목을 확인하세요.'
+                )
+
+            categories.append(name)
+
+        return categories
     def set_categories(self, names: list[str]) -> None:
         self.atomic_write(self.categories, ({'name': name} for name in names))
 
+    
     def get_budgets(self) -> dict[str, int]:
-        return {obj['month']: int(obj['amount']) for obj in self.read_objects(self.budgets)}
+        budgets = {}
+
+        for number, obj in enumerate(self.read_objects(self.budgets), 1):
+            try:
+                month = obj['month']
+                amount = obj['amount']
+
+                # 기존 models.py 검증 함수 재사용
+                check_month(month)
+                amount = positive_int(amount)
+
+            except (KeyError, TypeError, AppError) as exc:
+                raise AppError(
+                    f'budgets.jsonl {number}번째 데이터가 올바르지 않습니다. '
+                    'month(YYYY-MM)와 amount(양의 정수)를 확인하세요.'
+                ) from exc
+
+            budgets[month] = amount
+
+        return budgets
 
     def set_budgets(self, budgets: dict[str, int]) -> None:
         self.atomic_write(self.budgets,

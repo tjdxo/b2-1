@@ -154,8 +154,14 @@ class BudgetService:
                         raise AppError('CSV 헤더에 date,type,category,amount가 필요합니다.')
                     for line, row in enumerate(reader, 2):
                         try:
-                            if None in row:
-                                raise AppError('열 수가 맞지 않습니다.')
+                            # CSV 컬럼 수 검사
+                            if None in row or any(
+                                row.get(column) is None
+                                for column in CSV_COLUMNS[:4]
+                            ):
+                                raise AppError(
+                                    '필수 컬럼이 누락되었거나 열 수가 맞지 않습니다.'
+                                )
                             tx = self.validate_transaction(Transaction(
                                 id='TX-' + uuid4().hex[:12].upper(),
                                 date=row['date'], type=row['type'], category=row['category'],
