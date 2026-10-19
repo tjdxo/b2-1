@@ -162,8 +162,11 @@ def run(args: argparse.Namespace) -> int:
             if info['expense'] > info['budget']:
                 print('[경고] 월 예산 초과!')
         print(f'지출 TOP {args.top}')
-        for i, (name, amount) in enumerate(info['top'], 1):
-            print(f'{i}) {name} {amount}원')
+        if not info['top']:
+            print('지출 내역 없음')
+        else:
+            for i, (name, amount) in enumerate(info['top'], 1):
+                print(f'{i}) {name} {amount}원')
     elif cmd == 'budget':
         check_month(args.month)
         if args.action == 'set':
